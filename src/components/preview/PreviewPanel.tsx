@@ -1328,6 +1328,36 @@ function PreviewPanelInner({ content, theme, themeId, onChange, onExport, onRend
     };
   }, [isPanning, panStart]);
 
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) {return;}
+
+    const handleWheel = (e: WheelEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) {return;}
+      e.preventDefault();
+
+      const rect = el.getBoundingClientRect();
+      const offsetX = e.clientX - rect.left;
+      const offsetY = e.clientY - rect.top;
+
+      const prevZoom = zoomRef.current;
+      const zoomDelta = -e.deltaY * 0.01;
+      const nextZoom = Math.max(0.25, Math.min(10, prevZoom + zoomDelta));
+      if (nextZoom === prevZoom) {return;}
+
+      const scaleRatio = nextZoom / prevZoom;
+      const contentX = el.scrollLeft + offsetX;
+      const contentY = el.scrollTop + offsetY;
+
+      setZoom(nextZoom);
+      el.scrollLeft = contentX * scaleRatio - offsetX;
+      el.scrollTop = contentY * scaleRatio - offsetY;
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, []);
+
   async function copySvg() {
     if (!svg) {return;}
     // Same pipeline as the preview and exports so the clipboard SVG matches
